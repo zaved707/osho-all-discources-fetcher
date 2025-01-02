@@ -1,6 +1,6 @@
 import os
 import requests
-
+from tqdm import tqdm
 # List of audio series with their ranges (start and end)
 audio_series = {
     #"Adhyatam Upanishad": (4, 17),
@@ -23,32 +23,42 @@ audio_series = {
 # Base URL pattern
 base_url_template = "https://oshoworld.com/wp-content/uploads/2020/11/Hindi%20Audio/OSHO-{title}_{:02d}.mp3"
 
-# Iterate over the audio series
 for title, (start, end) in audio_series.items():
-    # Create a folder for the current series
-    folder_name = title.replace(" ", "_")
+    folder_name = title
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
 
-    # Download each file in the range for the series
     for i in range(start, end + 1):
         # Construct the URL
         url = base_url_template.replace("{title}", title.replace(" ", "_")).format(i)
         # Construct the file name
         filename = f"{title}_{i:02d}.mp3"
-        filepath = os.path.join(folder_name, filename)
+        incomplete_filename = f"incomplete_{filename}"
+        incomplete_filepath = os.path.join(folder_name, incomplete_filename)
+        final_filepath = os.path.join(folder_name, filename)
 
-        try:
-            print(f"Downloading {filename} to {folder_name}...")
-            # Send a GET request to the URL
-            response = requests.get(url, stream=True)
-            response.raise_for_status()  # Check for HTTP request errors
+        # Check if file is already completed
+        if os.path.exists(final_filepath):
+            print(f"Skipping {filename}, already downloaded.")
+            continue
 
-            # Write the file in chunks to save memory
-            with open(filepath, "wb") as file:
-                for chunk in response.iter_content(chunk_size=8192):
+        # Download with a progress bar
+        print(f"Downloading {filename} from {url}")
+        response = requests.get(url, stream=True)
+        total_size = int(response.headers.get('content-length', 0))
+
+        with open(incomplete_filepath, "wb") as file:
+            with tqdm(
+                total=total_size,
+                unit='B',
+                unit_scale=True,
+                desc=filename,
+                ascii=True
+            ) as pbar:
+                for chunk in response.iter_content(chunk_size=1024):
                     file.write(chunk)
+                    pbar.update(len(chunk))
 
-            print(f"Download complete: {filepath}")
-        except requests.exceptions.RequestException as e:
-            print(f"An error occurred while downloading {filename}: {e}")
+        # Rename the file to remove "incomplete_" prefix
+        os.rename(incomplete_filepath, final_filepath)
+        print(f"Saved {filename} to {final_filepath}")
