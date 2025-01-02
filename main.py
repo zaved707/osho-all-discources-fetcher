@@ -3,9 +3,10 @@ import requests
 from tqdm import tqdm
 # List of audio series with their ranges (start and end)
 audio_series = {
-
-    "Cheti_Sake_To_Chet": (1, 6),
-    "Chit_Chakmak_Lage_Nahin": (1, 6),
+    "Es_Dhammo_Sanantano": (1, 112),
+    "Ek_Omkar_Satnam": (1, 20),
+    "Ek_Ek_Kadam": (1, 7),
+    "Ek_Naya_Dwar": (1, 5)
 }
 
 # Base URL pattern
